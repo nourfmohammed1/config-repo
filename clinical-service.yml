@@ -1,0 +1,31 @@
+server:
+  port: 9002
+
+spring:
+  application:
+    name: CLINICAL-SERVICE
+  datasource:
+    url: jdbc:mysql://mysql-container-name:3306/clinical_db?serverTimezone=UTC
+    username: root  
+    password:       
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  sql:
+    init:
+      mode: always
+  jpa:
+    hibernate:
+      ddl-auto: update  # لإنشاء الجداول تلقائياً
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        # dialect: org.hibernate.dialect.MySQL8Dialect
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry:  true
+    service-url: 
+      defaultZone: http://registry:8761/eureka/
+  instance:
+    prefer-ip-address: true
