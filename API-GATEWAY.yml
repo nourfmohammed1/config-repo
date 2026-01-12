@@ -1,0 +1,28 @@
+server:
+  port: 1919
+ 
+spring:
+  application: 
+    name: API-GATEWAY
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: APPSERVICE
+              uri: lb://APPSERVICE
+              predicates:
+                - Path=/patients/**
+            - id: CLINICAL-SERVICE
+              uri: lb://CLINICAL-SERVICE
+              predicates:
+                - Path=/clinical/**
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry:  true
+    service-url: 
+      defaultZone:http://registry:8761/eureka/
+  instance:
+    prefer-ip-address: true
