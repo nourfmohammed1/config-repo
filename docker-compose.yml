@@ -1,0 +1,83 @@
+services:
+  registry:
+    build: ./service-registry
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      - SERVER_PORT=8761
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+
+  config-server:
+    build: ./Cloud-Configuration-Server
+    ports:
+      - "8888:8888"
+    healthcheck:
+      
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    depends_on:
+      registry:
+        condition: service_healthy
+
+  appservice:
+    build: ./appservice
+    ports:
+      - "9001:9001"
+    environment:
+      # نُخبر الخدمة أن خادم الإعدادات اسمه 'config-server' وليس 'localhost'
+      - SPRING_CONFIG_IMPORT=configserver:http://config-server:8888
+      # نُخبر الخدمة أن خادم التسجيل اسمه 'registry' وليس 'localhost'
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://registry:8761/eureka/
+    depends_on:
+      config-server:
+        condition: service_healthy 
+      mysql-container-name:
+        condition: service_healthy
+
+  clinical-service:
+    build: ./clinical-service
+    ports:
+      - "9002:9002"
+    environment:
+      # نُخبر الخدمة أن خادم الإعدادات اسمه 'config-server' وليس 'localhost'
+      - SPRING_CONFIG_IMPORT=configserver:http://config-server:8888
+      # نُخبر الخدمة أن خادم التسجيل اسمه 'registry' وليس 'localhost'
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://registry:8761/eureka/
+    depends_on:
+      config-server:
+        condition: service_healthy
+      mysql-container-name:
+        condition: service_healthy
+
+  gateway:
+    build: ./cloud-gateway
+    ports:
+      - "1919:1919"
+    environment:
+      - SPRING_CONFIG_IMPORT=configserver:http://config-server:8888
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://registry:8761/eureka/
+    depends_on:
+      config-server:
+        condition: service_healthy
+  mysql-container-name:
+    image: mysql:8.0
+    ports:
+      - "3308:3306"
+    environment:
+      # MYSQL_DATABASE: patient_db
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    volumes:
+    - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
